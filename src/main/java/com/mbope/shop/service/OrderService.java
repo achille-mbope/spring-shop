@@ -10,37 +10,30 @@ import com.mbope.shop.model.Order;
 import com.mbope.shop.model.OrderRequest;
 import com.mbope.shop.model.OrderStatus;
 
+import com.mbope.shop.validation.CustomerIdValidator;
+import com.mbope.shop.validation.ItemNameValidator;
+import com.mbope.shop.validation.OrderValidator;
+import com.mbope.shop.validation.QuantityValidator;
+import com.mbope.shop.validation.UnitPriceValidator;
+
 public class OrderService {
 
     private final Map<Long, Order> orders = new HashMap<>();
     private final AtomicLong nextOrderId = new AtomicLong(1L);
 
+    private final List<OrderValidator> validators = List.of(
+        new CustomerIdValidator(),
+        new ItemNameValidator(),
+        new QuantityValidator(),
+        new UnitPriceValidator()
+    );
+
     public Order createOrder(OrderRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("OrderRequest darf nicht null sein");
         }
-
-        if (request.getCustomerId() == null) {
-            throw new IllegalArgumentException("Kunden-ID darf nicht null sein");
-        }
-        if (request.getCustomerId().isBlank()) {
-            throw new IllegalArgumentException("Kunden-ID darf nicht leer sein");
-        }
-
-        if (request.getItemName() == null) {
-            throw new IllegalArgumentException("Artikelname darf nicht null sein");
-        }
-        if (request.getItemName().isBlank()) {
-            throw new IllegalArgumentException("Artikelname darf nicht leer sein");
-        }
-
-        if (request.getQuantity() <= 0) {
-            throw new IllegalArgumentException("Menge muss größer als 0 sein");
-        }
-
-        if (request.getUnitPrice() <= 0) {
-            throw new IllegalArgumentException("Einzelpreis muss größer als 0 sein");
-        }
+        
+        validators.forEach(validator -> validator.validate(request));
 
         Long orderId = nextOrderId.getAndIncrement();
         Order order = new Order(orderId, request.getCustomerId(), request.getItemName(), request.getQuantity(), request.getUnitPrice());
