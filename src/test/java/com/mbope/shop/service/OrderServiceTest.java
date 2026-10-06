@@ -223,6 +223,7 @@ class OrderServiceTest {
         assertThat(customer1Orders).allMatch(order -> order.getCustomerId().equals("customer-1"));
     }
 
+    @Test 
     void createOrder_shouldInitialieStatusAsNew() {
         // Arrange
         OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 2, 10.0);
@@ -234,18 +235,35 @@ class OrderServiceTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.NEW);
     }
 
+    @Test 
     void cancelOrder_shouldChangeStatusToCancelled() {
         // Arrange
         OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 2, 10.0);
         Order order = orderService.createOrder(orderRequest);
 
         // Act
-        orderService.cancelOrder(order.getId());
+        Order cancelledOrder = orderService.cancelOrder(order.getId());
 
         // Assert
+        assertThat(cancelledOrder).isSameAs(order);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.CANCELLED);
+    }
+
+    @Test
+    void cancelOrder_shouldRejectOrderThatIsAlreadyCancelled() {
+        // Arrange
+        Order order = orderService.createOrder(new OrderRequest("customer-1", "Item A", 2, 10.0));
+        orderService.cancelOrder(order.getId());
+
+        // Act & Assert
+        assertThatThrownBy(() -> orderService.cancelOrder(order.getId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Bestellung kann nicht storniert werden im Status: CANCELLED");
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
     }
 
+    @Test 
     void cancelOrder_shouldExceptionWhenNotFound() {
         // Act & Assert
         assertThatThrownBy(() -> orderService.cancelOrder(9999L))
@@ -253,5 +271,20 @@ class OrderServiceTest {
                 .hasMessageContaining("Bestellung nicht gefunden: 9999");
     }
 
-}
+    @Test
+    void cancelOrder_shouldRejectNullOrderId() {
+        // Act & Assert
+        assertThatThrownBy(() -> orderService.cancelOrder(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Order ID darf nicht null sein");
+    }
 
+    @Test
+    void cancelOrder_shouldRejectNonPositiveOrderId() {
+        // Act & Assert
+        assertThatThrownBy(() -> orderService.cancelOrder(0L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Order ID muss größer als 0 sein");
+    }
+
+}
