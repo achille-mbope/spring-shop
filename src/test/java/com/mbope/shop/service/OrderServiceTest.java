@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import com.mbope.shop.model.Order;
 import com.mbope.shop.model.OrderRequest;
+import com.mbope.shop.model.OrderStatus;
 
 class OrderServiceTest {
 
@@ -220,6 +221,36 @@ class OrderServiceTest {
         assertThat(customer1Orders).hasSize(2);
         //assertThat(customer1Orders).containsExactlyInAnyOrder(createdOrder1, createdOrder3);
         assertThat(customer1Orders).allMatch(order -> order.getCustomerId().equals("customer-1"));
+    }
+
+    void createOrder_shouldInitialieStatusAsNew() {
+        // Arrange
+        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 2, 10.0);
+
+        // Act
+        Order order = orderService.createOrder(orderRequest);
+
+        // Assert
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.NEW);
+    }
+
+    void cancelOrder_shouldChangeStatusToCancelled() {
+        // Arrange
+        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 2, 10.0);
+        Order order = orderService.createOrder(orderRequest);
+
+        // Act
+        orderService.cancelOrder(order.getId());
+
+        // Assert
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+    }
+
+    void cancelOrder_shouldExceptionWhenNotFound() {
+        // Act & Assert
+        assertThatThrownBy(() -> orderService.cancelOrder(9999L))
+                .isInstanceOf(OrderNotFoundException.class)
+                .hasMessageContaining("Bestellung nicht gefunden: 9999");
     }
 
 }
