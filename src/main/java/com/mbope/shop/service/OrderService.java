@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.mbope.shop.model.Order;
 import com.mbope.shop.model.OrderRequest;
+import com.mbope.shop.model.OrderStatus;
 
 public class OrderService {
 
@@ -77,5 +78,17 @@ public class OrderService {
             }
         }
         return customerOrders;
+    }
+
+    public Order cancelOrder(Long orderId) {
+        Order order = getOrderById(orderId);
+        
+        if(order.getStatus() != OrderStatus.NEW) {
+            throw new IllegalStateException("Bestellung kann nicht storniert werden im Status: " + order.getStatus());
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        return order;
     }
 }

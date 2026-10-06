@@ -8,6 +8,7 @@ public class Order {
     private String itemName;
     private int quantity;
     private double unitPrice;
+    private OrderStatus status;
 
     public Order() {
     }
@@ -18,6 +19,7 @@ public class Order {
         this.itemName = itemName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
+        this.status = OrderStatus.NEW;
     }
 
     public Long getId() {
@@ -62,6 +64,14 @@ public class Order {
 
     public double getTotalPrice() {
         return quantity * unitPrice;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
     }
 
     @Override
