@@ -20,7 +20,7 @@ class OrderTest {
         // Arrange
         Order order = newOrder();
         // Act
-        order.setStatus(OrderStatus.CANCELLED);
+        order.cancel();
         // Assert
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
     }

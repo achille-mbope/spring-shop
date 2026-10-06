@@ -70,8 +70,12 @@ public class Order {
         return status;
     }
 
-    public void setStatus(OrderStatus status) {
-        this.status = status;
+
+    public void cancel() {
+        if (status != OrderStatus.NEW) {
+            throw new IllegalStateException("Bestellung kann nicht storniert werden im Status: " + status);
+        }
+        this.status = OrderStatus.CANCELLED;
     }
 
     @Override
