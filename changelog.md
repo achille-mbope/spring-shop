@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Schritt 6 – Testabdeckung für die Bestellstornierung
+- `OrderServiceTest` prüft den erfolgreichen Storno inklusive Rückgabewert, geändertem Status und erneutem Abruf der Bestellung.
+- Ein weiterer Test stellt sicher, dass eine bereits stornierte Bestellung nicht erneut storniert werden kann und den Status `CANCELLED` behält.
+- Fehlerfälle für nicht vorhandene, null und ungültige Bestell-IDs werden abgedeckt.
+
 ### Schritt 5 – Testabdeckung und Validierung der Service-Logik
 - Die Validierung in `OrderService` wurde so angepasst, dass alle bestehenden Testfälle die erwarteten Exceptions und Meldungen korrekt auslösen.
 - `quantity <= 0` führt jetzt zu `IllegalArgumentException` mit der Meldung `Menge muss größer als 0 sein`.
