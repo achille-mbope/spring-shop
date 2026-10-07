@@ -26,7 +26,10 @@ class OrderServiceTest {
                 new ItemNameValidator(),
                 new QuantityValidator(),
                 new UnitPriceValidator()
-            ));
+            ),
+            event -> {
+                // Hier können die Ereignisse protokollieren oder getestet werden, wenn nötig
+            });
 
     // Bestellung anlegen, Gesamtpreis berechnen und prüfen, ob der Gesamtpreis korrekt ist
     @Test
