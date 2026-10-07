@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Schritt 8 – Korrektur der Controller-Test-Assertion
+- Der Order-Controller-Test prüft den berechneten Preis jetzt unter dem JSON-Feld `totalPrice`, wie es vom `Order`-Modell serialisiert wird.
+- Der gezielte Test `createOrder_shouldReturn201WithOrderJson` wurde erfolgreich ausgeführt.
+
+### Schritt 7 – Repository Pattern für die Bestellpersistenz
+- Die Persistenzlogik wurde aus `OrderService` in das `OrderRepository`-Interface ausgelagert.
+- `InMemoryOrderRepository` implementiert das Speichern sowie das Suchen nach ID und das Auflisten aller Bestellungen.
+- Beim Speichern erhält eine Bestellung ohne ID eine automatisch generierte ID; wiederholtes Suchen liefert dieselbe gespeicherte Instanz.
+- `OrderService` verwendet das Repository statt einer eigenen In-Memory-Datenstruktur.
+- Repository-Tests decken ID-Vergabe, Speichern, Suchen, nicht gefundene Bestellungen sowie leere und vollständige Listen ab.
+
 ### Schritt 6 – Testabdeckung für die Bestellstornierung
 - `OrderServiceTest` prüft den erfolgreichen Storno inklusive Rückgabewert, geändertem Status und erneutem Abruf der Bestellung.
 - Ein weiterer Test stellt sicher, dass eine bereits stornierte Bestellung nicht erneut storniert werden kann und den Status `CANCELLED` behält.

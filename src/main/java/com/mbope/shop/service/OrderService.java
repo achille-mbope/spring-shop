@@ -1,39 +1,27 @@
 package com.mbope.shop.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+
+import org.springframework.stereotype.Service;
 
 import com.mbope.shop.model.Order;
 import com.mbope.shop.model.OrderRequest;
 import com.mbope.shop.repository.OrderRepository;
-import com.mbope.shop.validation.CustomerIdValidator;
-import com.mbope.shop.validation.ItemNameValidator;
 import com.mbope.shop.validation.OrderValidator;
 import com.mbope.shop.validation.OrderIdValidator;
-import com.mbope.shop.validation.OrderRequestValidator;
-import com.mbope.shop.validation.QuantityValidator;
-import com.mbope.shop.validation.UnitPriceValidator;
 
-
+@Service
 public class OrderService {
 
     private final OrderRepository repository;
 
-    private final List<OrderValidator> validators = List.of(
-        new OrderRequestValidator(),
-        new CustomerIdValidator(),
-        new ItemNameValidator(),
-        new QuantityValidator(),
-        new UnitPriceValidator()
-    );
+    private final List<OrderValidator> validators;
 
     private final OrderIdValidator orderIdValidator = new OrderIdValidator();
 
-    public OrderService(OrderRepository repository) {
+    public OrderService(OrderRepository repository, List<OrderValidator> validators) {
         this.repository = repository;
+        this.validators = validators;
     }
 
     public Order createOrder(OrderRequest request) {
