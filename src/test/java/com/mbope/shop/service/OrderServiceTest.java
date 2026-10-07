@@ -9,10 +9,11 @@ import org.junit.jupiter.api.Test;
 import com.mbope.shop.model.Order;
 import com.mbope.shop.model.OrderRequest;
 import com.mbope.shop.model.OrderStatus;
+import com.mbope.shop.repository.InMemoryOrderRepository;
 
 class OrderServiceTest {
 
-    private final OrderService orderService = new OrderService();
+    private final OrderService orderService = new OrderService(new InMemoryOrderRepository());
 
     // Bestellung anlegen, Gesamtpreis berechnen und prüfen, ob der Gesamtpreis korrekt ist
     @Test

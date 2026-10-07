@@ -10,7 +10,8 @@ public class Order {
     private double unitPrice;
     private OrderStatus status;
 
-    public Order() {
+    public Order(String customerId, String itemName, int quantity, double unitPrice) {
+        this(null, customerId, itemName, quantity, unitPrice);
     }
 
     public Order(Long id, String customerId, String itemName, int quantity, double unitPrice) {
@@ -26,7 +27,16 @@ public class Order {
         return id;
     }
 
+    /**
+     * Nur für Repositories gedacht, die die ID setzen müssen, z.B. InMemoryOrderRepository.
+     * Wirft eine IllegalStateException, wenn die ID bereits gesetzt ist.
+     * 
+     * @param id
+     */
     public void setId(Long id) {
+        if (this.id != null) {
+            throw new IllegalStateException("ID ist bereits gesetzt: " + this.id);
+        }
         this.id = id;
     }
 

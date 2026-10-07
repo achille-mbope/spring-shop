@@ -1,9 +1,11 @@
 package com.mbope.shop.repository;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.mbope.shop.model.Order;
 
@@ -55,6 +57,7 @@ class InMemoryOrderRepositoryTest {
         assertThat(allOrders).containsExactlyInAnyOrder(order1, order2);
     }
 
+    @Test 
     void findAll_shouldReturnEmptyListWhenNoOrders() {
         assertThat(repository.findAll()).isEmpty();
     }
