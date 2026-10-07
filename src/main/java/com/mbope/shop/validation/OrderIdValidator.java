@@ -1,5 +1,8 @@
 package com.mbope.shop.validation;
 
+import org.springframework.stereotype.Component;
+
+@Component 
 public class OrderIdValidator {
 
     public void validate(Long orderId) {

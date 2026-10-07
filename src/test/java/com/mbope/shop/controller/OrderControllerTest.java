@@ -41,7 +41,7 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.customerId").value("customer-1"))
                 .andExpect(jsonPath("$.itemName").value("Item A"))
                 .andExpect(jsonPath("$.quantity").value(2))
-                .andExpect(jsonPath("$.total").value(20.0))
+                .andExpect(jsonPath("$.totalPrice").value(20.0))
                 .andExpect(jsonPath("$.unitPrice").value(10.0))
                 .andExpect(jsonPath("$.status").value("NEW"));
     }

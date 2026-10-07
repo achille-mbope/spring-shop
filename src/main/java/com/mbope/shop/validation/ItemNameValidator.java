@@ -1,7 +1,10 @@
 package com.mbope.shop.validation;
 
+import org.springframework.stereotype.Component;
+
 import com.mbope.shop.model.OrderRequest;
 
+@Component 
 public class ItemNameValidator implements OrderValidator {
 
     @Override

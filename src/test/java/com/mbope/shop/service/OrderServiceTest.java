@@ -11,9 +11,22 @@ import com.mbope.shop.model.OrderRequest;
 import com.mbope.shop.model.OrderStatus;
 import com.mbope.shop.repository.InMemoryOrderRepository;
 
+import com.mbope.shop.validation.CustomerIdValidator;
+import com.mbope.shop.validation.ItemNameValidator;
+import com.mbope.shop.validation.OrderRequestValidator;
+import com.mbope.shop.validation.QuantityValidator;
+import com.mbope.shop.validation.UnitPriceValidator;
+
 class OrderServiceTest {
 
-    private final OrderService orderService = new OrderService(new InMemoryOrderRepository());
+    private final OrderService orderService = new OrderService(new InMemoryOrderRepository(),
+            List.of(
+                new OrderRequestValidator(),
+                new CustomerIdValidator(),
+                new ItemNameValidator(),
+                new QuantityValidator(),
+                new UnitPriceValidator()
+            ));
 
     // Bestellung anlegen, Gesamtpreis berechnen und prüfen, ob der Gesamtpreis korrekt ist
     @Test

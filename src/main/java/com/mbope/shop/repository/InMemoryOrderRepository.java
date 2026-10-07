@@ -7,8 +7,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.springframework.stereotype.Repository;
+
 import com.mbope.shop.model.Order;
 
+@Repository 
 public class InMemoryOrderRepository implements OrderRepository {
     private final Map<Long, Order> orders = new HashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1L);
