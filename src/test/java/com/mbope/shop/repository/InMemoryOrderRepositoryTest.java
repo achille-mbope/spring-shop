@@ -17,10 +17,14 @@ class InMemoryOrderRepositoryTest {
         repository = new InMemoryOrderRepository();
     }
 
+    private Order newOrder(String customerId){
+        return new Order(customerId, List.of(new OrderLine("Item A",1, 10.0)));
+    }
+
     @Test 
     void save_shouldAssignIdAndStoreOrder() {
         // Arrange
-        Order order = new Order(null, "customer-1", "Item A", 2, 10.0);
+        Order order = newOrder("customer-1");
         // Act
         Order savedOrder = repository.save(order);
         // Assert
@@ -30,13 +34,13 @@ class InMemoryOrderRepositoryTest {
 
     @Test 
     void save_shouldReturnSameInstanceOnRepeatedFind() {
-        // Arrange
-        Order order = new Order("customer-1", "Item A", 2, 10.0);
-        Order savedOrder = repository.save(order);
+        // Arrange & Act
+        Order order = repository.save(newOrder("customer-1"));
+
         // Act
-        Optional<Order> found = repository.findById(savedOrder.getId());
+        Optional<Order> found = repository.findById(order.getId());
         // Assert
-        assertThat(found).contains(savedOrder);
+        assertThat(found).containsSame(order);
     }
 
     @Test 
@@ -47,8 +51,8 @@ class InMemoryOrderRepositoryTest {
     @Test
     void findAll_shouldReturnAllSavedOrders() {
         // Arrange
-        Order order1 = new Order("customer-1", "Item A", 2, 10.0);
-        Order order2 = new Order("customer-2", "Item B", 1, 20.0);
+        Order order1 = new Order("customer-1");
+        Order order2 = new Order("customer-2");
         repository.save(order1);
         repository.save(order2);
         // Act

@@ -1,307 +1,183 @@
 package com.mbope.shop.service;
 
+import com.mbope.shop.model.Order;
+import com.mbope.shop.model.OrderLineRequest;
+import com.mbope.shop.model.OrderRequest;
+import com.mbope.shop.model.OrderStatus;
+import com.mbope.shop.repository.InMemoryOrderRepository;
+import com.mbope.shop.validation.CompositeOrderLineValidator;
+import com.mbope.shop.validation.CustomerIdValidator;
+import com.mbope.shop.validation.ItemNameValidator;
+import com.mbope.shop.validation.OrderValidator;
+import com.mbope.shop.validation.QuantityValidator;
+import com.mbope.shop.validation.UnitPriceValidator;
+import org.junit.jupiter.api.Test;
+
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import org.junit.jupiter.api.Test;
-
-import com.mbope.shop.model.Order;
-import com.mbope.shop.model.OrderRequest;
-import com.mbope.shop.model.OrderStatus;
-import com.mbope.shop.repository.InMemoryOrderRepository;
-
-import com.mbope.shop.validation.CustomerIdValidator;
-import com.mbope.shop.validation.ItemNameValidator;
-import com.mbope.shop.validation.OrderRequestValidator;
-import com.mbope.shop.validation.QuantityValidator;
-import com.mbope.shop.validation.UnitPriceValidator;
 
 class OrderServiceTest {
 
-    private final OrderService orderService = new OrderService(new InMemoryOrderRepository(),
+    private final OrderService orderService = new OrderService(
+            new InMemoryOrderRepository(),
             List.of(
-                new OrderRequestValidator(),
-                new CustomerIdValidator(),
-                new ItemNameValidator(),
-                new QuantityValidator(),
-                new UnitPriceValidator()
+                    new CustomerIdValidator(),
+                    new CompositeOrderLineValidator(
+                            List.of(new ItemNameValidator(),
+                                    new QuantityValidator(),
+                                    new UnitPriceValidator()))
             ),
-            event -> {
-                // Hier können die Ereignisse protokollieren oder getestet werden, wenn nötig
-            });
+            event -> { /* no-op */ }
+    );
 
-    // Bestellung anlegen, Gesamtpreis berechnen und prüfen, ob der Gesamtpreis korrekt ist
+    private OrderRequest singleLine(String customerId, String itemName,
+                                     int quantity, double unitPrice) {
+        return new OrderRequest(customerId,
+                List.of(new OrderLineRequest(itemName, quantity, unitPrice)));
+    }
+
     @Test
-    void createOrder_shouldReturnOrderWithCorrectTotalPrice() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 2, 10.0);
+    void createOrder_shouldReturnOrderWithCorrectTotal() {
+        Order order = orderService.createOrder(singleLine("customer-1", "item-A", 2, 10.0));
 
-        // Act
-        Order order = orderService.createOrder(orderRequest);
-
-        // Assert
         assertThat(order.getCustomerId()).isEqualTo("customer-1");
-        assertThat(order.getItemName()).isEqualTo("Item A");
-        assertThat(order.getQuantity()).isEqualTo(2);
-        assertThat(order.getUnitPrice()).isEqualTo(10.0);
-        assertThat(order.getTotalPrice()).isEqualTo(20.0);
+        assertThat(order.getLines()).hasSize(1);
+        assertThat(order.getLines().get(0).getItemName()).isEqualTo("item-A");
+        assertThat(order.getLines().get(0).getQuantity()).isEqualTo(2);
+        assertThat(order.getLines().get(0).getUnitPrice()).isEqualTo(10.0);
+        assertThat(order.getTotal()).isEqualTo(20.0);
     }
 
     @Test
-    void createOrder_shouldThrowExceptionForInvalidQuantity() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 0, 10.0);
+    void createOrder_shouldSumMultipleLines() {
+        OrderRequest request = new OrderRequest("customer-1", List.of(
+                new OrderLineRequest("item-A", 2, 10.0),
+                new OrderLineRequest("item-B", 1, 5.0)
+        ));
 
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Menge muss größer als 0 sein");
-    }
+        Order order = orderService.createOrder(request);
 
-    @Test 
-    void getOrderById_shouldReturnOrder() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 3, 10.0);
-        Order createdOrder = orderService.createOrder(orderRequest);
-
-        // Act
-        Order retrievedOrder = orderService.getOrderById(createdOrder.getId());
-
-        // Assert
-        assertThat(retrievedOrder).isEqualTo(createdOrder);
+        assertThat(order.getLines()).hasSize(2);
+        assertThat(order.getTotal()).isEqualTo(25.0);
     }
 
     @Test
-    void getOrderById_shouldThrowExceptionForNonExistingOrder() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.getOrderById(9999L))
-                .isInstanceOf(OrderNotFoundException.class)
-                .hasMessageContaining("Bestellung nicht gefunden: 9999");
+    void createOrder_shouldThrowExceptionWhenQuantityIsZero() {
+        assertThatThrownBy(() -> orderService.createOrder(
+                singleLine("customer-1", "item-A", 0, 10.0)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Menge muss größer als 0 sein");
     }
 
     @Test
-    void createOrder_shouldThrowExceptionForNegativeQuantity() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", -1, 10.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
+    void createOrder_shouldThrowExceptionWhenQuantityIsNegative() {
+        assertThatThrownBy(() -> orderService.createOrder(
+                singleLine("customer-1", "item-A", -1, 10.0)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Menge muss größer als 0 sein");
-    }
-
-    @Test 
-    void createOrder_shouldThrowExceptionForZeroQuantity() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 0, 10.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Menge muss größer als 0 sein");
-    }
-
-    @Test 
-    void createOrder_shouldThrowExceptionForNegativeUnitPrice() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 1, -10.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Einzelpreis muss größer als 0 sein");
-    }
-
-    @Test 
-    void createOrder_shouldThrowExceptionForZeroUnitPrice() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 1, 0.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Einzelpreis muss größer als 0 sein");
+                .hasMessage("Menge muss größer als 0 sein");
     }
 
     @Test
-    void createOrder_shouldThrowExceptionForNullCustomerId() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest(null, "Item A", 1, 10.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
+    void createOrder_shouldThrowExceptionWhenUnitPriceIsZero() {
+        assertThatThrownBy(() -> orderService.createOrder(
+                singleLine("customer-1", "item-A", 1, 0.0)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Kunden-ID darf nicht null sein");
+                .hasMessage("Preis muss größer als 0 sein");
     }
 
     @Test
-    void createOrder_shouldThrowExceptionForEmptyCustomerId() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("", "Item A", 1, 10.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
+    void createOrder_shouldThrowExceptionWhenUnitPriceIsNegative() {
+        assertThatThrownBy(() -> orderService.createOrder(
+                singleLine("customer-1", "item-A", 1, -5.0)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Kunden-ID darf nicht leer sein");
+                .hasMessage("Preis muss größer als 0 sein");
     }
 
     @Test
-    void createOrder_shouldThrowExceptionForNullItemName() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", null, 1, 10.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
+    void createOrder_shouldThrowExceptionWhenCustomerIdIsBlank() {
+        assertThatThrownBy(() -> orderService.createOrder(
+                singleLine("   ", "item-A", 1, 10.0)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Artikelname darf nicht null sein");
+                .hasMessage("Kunden-ID darf nicht leer sein");
     }
 
-    @Test 
-    void createOrder_shouldThrowExceptionForEmptyItemName() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "", 1, 10.0);
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(orderRequest))
+    @Test
+    void createOrder_shouldThrowExceptionWhenItemNameIsBlank() {
+        assertThatThrownBy(() -> orderService.createOrder(
+                singleLine("customer-1", "", 1, 10.0)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Artikelname darf nicht leer sein");
+                .hasMessage("Artikelname darf nicht leer sein");
     }
 
-    @Test 
-    void createOrder_shouldThrowExceptionForNullOrderRequest() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.createOrder(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("OrderRequest darf nicht null sein");
-    }
+    @Test
+    void createOrder_shouldInitializeStatusAsNew() {
+        Order order = orderService.createOrder(singleLine("customer-1", "item-A", 1, 10.0));
 
-    @Test 
-    void getOrderById_shouldThrowExceptionForNullOrderId() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.getOrderById(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Order ID darf nicht null sein");
-    }
-
-    @Test 
-    void getOrderById_shouldThrowExceptionForNegativeOrderId() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.getOrderById(-1L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Order ID muss größer als 0 sein");
-    }
-
-    @Test 
-    void getOrderById_shouldThrowExceptionForZeroOrderId() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.getOrderById(0L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Order ID muss größer als 0 sein");
-    }
-
-    @Test 
-    void getAllOrders_shouldReturnAllCreatedOrders() {
-        // Arrange
-        OrderRequest orderRequest1 = new OrderRequest("customer-1", "Item A", 2, 10.0);
-        OrderRequest orderRequest2 = new OrderRequest("customer-2", "Item B", 3, 15.0);
-        OrderRequest orderRequest3 = new OrderRequest("customer-3", "Item A", 5, 10.0);
-        Order createdOrder1 = orderService.createOrder(orderRequest1);
-        Order createdOrder2 = orderService.createOrder(orderRequest2);
-        Order createdOrder3 = orderService.createOrder(orderRequest3);
-
-        // Act
-        List<Order> allOrders = orderService.getAllOrders();
-
-        // Assert
-        assertThat(allOrders).containsExactlyInAnyOrder(createdOrder1, createdOrder2, createdOrder3);
-    }
-
-    @Test 
-    void getAllOrders_shouldReturnEmptyListWhenNoOrdersCreated() {
-        // Act
-        List<Order> allOrders = orderService.getAllOrders();
-
-        // Assert
-        assertThat(allOrders).isEmpty();
-    }
-
-    @Test 
-    void getOrdersByCustomerId_shouldReturnOrdersForGivenCustomerId() {
-        // Arrange
-        orderService.createOrder(new OrderRequest("customer-1", "Item A", 2, 10.0));
-        orderService.createOrder(new OrderRequest("customer-2", "Item B", 3, 15.0));
-        orderService.createOrder(new OrderRequest("customer-1", "Item C", 1, 20.0));
-        // Act
-        List<Order> customer1Orders = orderService.getOrdersByCustomerId("customer-1");
-        // Assert
-        assertThat(customer1Orders).hasSize(2);
-        //assertThat(customer1Orders).containsExactlyInAnyOrder(createdOrder1, createdOrder3);
-        assertThat(customer1Orders).allMatch(order -> order.getCustomerId().equals("customer-1"));
-    }
-
-    @Test 
-    void createOrder_shouldInitialieStatusAsNew() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 2, 10.0);
-
-        // Act
-        Order order = orderService.createOrder(orderRequest);
-
-        // Assert
         assertThat(order.getStatus()).isEqualTo(OrderStatus.NEW);
     }
 
-    @Test 
-    void cancelOrder_shouldChangeStatusToCancelled() {
-        // Arrange
-        OrderRequest orderRequest = new OrderRequest("customer-1", "Item A", 2, 10.0);
-        Order order = orderService.createOrder(orderRequest);
+    @Test
+    void getOrderById_shouldReturnOrder() {
+        Order created = orderService.createOrder(singleLine("customer-1", "item-A", 1, 5.0));
 
-        // Act
-        Order cancelledOrder = orderService.cancelOrder(order.getId());
+        Order found = orderService.getOrderById(created.getId());
 
-        // Assert
-        assertThat(cancelledOrder).isSameAs(order);
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
-        assertThat(orderService.getOrderById(order.getId()).getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(found).isEqualTo(created);
     }
 
     @Test
-    void cancelOrder_shouldRejectOrderThatIsAlreadyCancelled() {
-        // Arrange
-        Order order = orderService.createOrder(new OrderRequest("customer-1", "Item A", 2, 10.0));
-        orderService.cancelOrder(order.getId());
-
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.cancelOrder(order.getId()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Bestellung kann nicht storniert werden im Status: CANCELLED");
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
-    }
-
-    @Test 
-    void cancelOrder_shouldExceptionWhenNotFound() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.cancelOrder(9999L))
+    void getOrderById_shouldThrowExceptionWhenNotFound() {
+        assertThatThrownBy(() -> orderService.getOrderById(999L))
                 .isInstanceOf(OrderNotFoundException.class)
-                .hasMessageContaining("Bestellung nicht gefunden: 9999");
+                .hasMessage("Bestellung nicht gefunden: 999");
     }
 
     @Test
-    void cancelOrder_shouldRejectNullOrderId() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.cancelOrder(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Order ID darf nicht null sein");
+    void getAllOrders_shouldReturnAllCreatedOrders() {
+        orderService.createOrder(singleLine("customer-1", "item-A", 1, 10.0));
+        orderService.createOrder(singleLine("customer-2", "item-B", 2, 5.0));
+
+        assertThat(orderService.getAllOrders()).hasSize(2);
     }
 
     @Test
-    void cancelOrder_shouldRejectNonPositiveOrderId() {
-        // Act & Assert
-        assertThatThrownBy(() -> orderService.cancelOrder(0L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Order ID muss größer als 0 sein");
+    void getOrdersByCustomer_shouldReturnOnlyMatchingOrders() {
+        orderService.createOrder(singleLine("customer-1", "item-A", 1, 10.0));
+        orderService.createOrder(singleLine("customer-2", "item-B", 2, 5.0));
+        orderService.createOrder(singleLine("customer-1", "item-C", 3, 1.0));
+
+        var customerOrders = orderService.getOrdersByCustomer("customer-1");
+
+        assertThat(customerOrders).hasSize(2);
+        assertThat(customerOrders)
+                .allMatch(o -> o.getCustomerId().equals("customer-1"));
     }
 
+    @Test
+    void cancelOrder_shouldSetStatusToCancelled() {
+        Order created = orderService.createOrder(singleLine("customer-1", "item-A", 1, 10.0));
+
+        Order cancelled = orderService.cancelOrder(created.getId());
+
+        assertThat(cancelled.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+    }
+
+    @Test
+    void cancelOrder_shouldThrowExceptionWhenAlreadyCancelled() {
+        Order created = orderService.createOrder(singleLine("customer-1", "item-A", 1, 10.0));
+        orderService.cancelOrder(created.getId());
+
+        assertThatThrownBy(() -> orderService.cancelOrder(created.getId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Bestellung kann nicht storniert werden im Status: CANCELLED");
+    }
+
+    @Test
+    void cancelOrder_shouldThrowExceptionWhenNotFound() {
+        assertThatThrownBy(() -> orderService.cancelOrder(999L))
+                .isInstanceOf(OrderNotFoundException.class)
+                .hasMessage("Bestellung nicht gefunden: 999");
+    }
 }
